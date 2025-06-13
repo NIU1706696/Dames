@@ -29,6 +29,7 @@ class Fitxa
     {
     }
     Fitxa(char type);
+    void visualitza(int x, int y) const;
     Color getCol() const
     {
         return m_color;
