@@ -1,9 +1,11 @@
 #include "Fitxa.h"
 #include "Moviment.h"
 #include "Posicio.h"
-#include "tauler.hpp"
+#include "Tauler.h"
+#include "info_joc.hpp"
 
 #include <ostream>
+#include "GraphicManager.h"
 
 using namespace std;
 
@@ -38,7 +40,7 @@ stringstream &operator<<(stringstream &out, const Fitxa &f)
 
 int DIRECCIO_ENDEVANT(Color color)
 {
-    return color == COLOR_NEGRE ? -1 : 1;
+    return color == COLOR_NEGRE ? 1 : -1;
 }
 
 const Posicio DIRECCIONS_DAMA[4] = {{1, 1}, {-1, 1}, {1, -1}, {-1, -1}};
@@ -168,20 +170,22 @@ vector<Moviment> &Fitxa::getMoviments(Posicio inici, Tauler *tauler)
     // Troba cadenes de matar fitxes.
     while (!pendents.empty())
     {
-        Moviment &actual = pendents.back();
+        Moviment actual = pendents.back();
+        pendents.pop_back();
         vector<Posicio> posicions;
         vector<Posicio> kills;
-        trobaKills(pendents.back().getLastPos(), kills, posicions, actual, tauler);
+        trobaKills(actual.getLastPos(), kills, posicions, actual, tauler);
         if (kills.empty())
         {
-            m_moviments.push_back(pendents.back());
-            pendents.pop_back();
+            m_moviments.push_back(actual);
         }
         else
         {
             for (int i = 0; i < kills.size(); i++)
             {
-                pendents.back().pushKill(posicions[i], kills[i]);
+                Moviment copy(actual);
+                copy.pushKill(posicions[i], kills[i]);
+                pendents.push_back(copy);
             }
         }
     }
@@ -227,5 +231,32 @@ Fitxa::Fitxa(char type)
     {
         m_tipo = TIPUS_NORMAL;
         m_color = COLOR_NEGRE;
+    }
+}
+
+void Fitxa::visualitza(int x, int y) const {
+    int posX = POS_X_TAULER + CASELLA_INICIAL_X + (x * AMPLADA_CASELLA);
+    int posY = POS_Y_TAULER + CASELLA_INICIAL_Y + (y * ALCADA_CASELLA);
+    if (m_color == COLOR_NEGRE)
+    {
+        if (m_tipo == TIPUS_NORMAL)
+        {
+            GraphicManager::getInstance()->drawSprite(GRAFIC_FITXA_NEGRA, posX, posY);
+        }
+        else if (m_tipo == TIPUS_DAMA)
+        {
+            GraphicManager::getInstance()->drawSprite(GRAFIC_DAMA_NEGRA, posX, posY);
+        }
+    }
+    else if (m_color == COLOR_BLANC)
+    {
+        if (m_tipo == TIPUS_NORMAL)
+        {
+            GraphicManager::getInstance()->drawSprite(GRAFIC_FITXA_BLANCA, posX, posY);
+        }
+        else if (m_tipo == TIPUS_DAMA)
+        {
+            GraphicManager::getInstance()->drawSprite(GRAFIC_DAMA_BLANCA, posX, posY);
+        }
     }
 }
