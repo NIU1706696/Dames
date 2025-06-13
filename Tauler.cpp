@@ -1,10 +1,38 @@
-#include "tauler.hpp"
+#include "Tauler.h"
 #include "Fitxa.h"
 #include "Posicio.h"
-
 #include <fstream>
+#include "GraphicManager.h"
+#include "info_joc.hpp"
 
 using namespace std;
+
+Tauler::Tauler()
+: m_nMorts(0), m_topMortsPos(-1, -1)
+{
+    m_tauler = new Fitxa * *[N_FILES];
+    for (size_t i = 0; i < N_FILES; i++)
+    {
+        m_tauler[i] = new Fitxa * [N_FILES];
+        for (size_t j = 0; j < N_COLUMNES; j++)
+        {
+            m_tauler[i][j] = new Fitxa();
+        }
+    }
+}
+
+Tauler::~Tauler()
+{
+    for (size_t i = 0; i < N_FILES; i++)
+    {
+        for (size_t j = 0; j < N_COLUMNES; j++)
+        {
+            delete m_tauler[i][j];
+        }
+        delete m_tauler[i];
+    }
+    delete m_tauler;
+}
 
 void Tauler::actualitzaMovimentsValids()
 {
@@ -14,7 +42,7 @@ void Tauler::actualitzaMovimentsValids()
         for (int j = 0; j < N_COLUMNES; j++)
         {
             Posicio p(j, i);
-            if (getFitxa(p)->getCol() == COLOR_BLANC && getFitxa(p)->getTipo() != TIPUS_BUIT)
+            if (getFitxa(p)->getCol() == m_colorJugadorActual && getFitxa(p)->getTipo() != TIPUS_BUIT)
             {
                 auto &movs = getFitxa(p)->getMoviments(p, this);
                 for (int k = 0; k < movs.size(); k++)
@@ -47,33 +75,36 @@ void Tauler::getPosicionsPossibles(Posicio origen, int &nPosicions, Posicio posi
 
 void Tauler::set(Posicio pos, const Fitxa &fitxa)
 {
-    m_tauler[pos.getY()][pos.getX()] = fitxa;
+    *m_tauler[pos.getY()][pos.getX()] = fitxa;
 }
 
 const Moviment *Tauler::cercaExisteixCami(Posicio a, Posicio b)
 {
     const vector<Moviment> &camins = getFitxa(a)->getMoviments(a, this);
-    int i = 0;
+    int iMax = -1;
     bool trobat = false;
-    while (i < camins.size() && !trobat)
-    {
+    for (int i = 0; i < camins.size(); i++) {
         if (camins[i].visita(b))
         {
             trobat = true;
-        }
-        else
-        {
-            i++;
+            if (iMax == -1 || camins[i].getKills().size() > camins[iMax].getKills().size())
+            {
+                iMax = i;
+            }
         }
     }
     if (trobat)
     {
-        return &camins[i];
+        return &camins[iMax];
     }
-    else
-    {
+    else {
         return nullptr;
     }
+}
+
+void Tauler::setColorJugadorActual(Color color)
+{
+    m_colorJugadorActual = color;
 }
 
 bool Tauler::mouFitxa(Posicio a, Posicio b)
@@ -133,7 +164,7 @@ void Tauler::bufaFitxa(Posicio fitxaQueMovem, Posicio dest, int nMata)
 
 void Tauler::del(Posicio pos)
 {
-    m_tauler[pos.getY()][pos.getX()] = Fitxa();
+    *m_tauler[pos.getY()][pos.getX()] = Fitxa();
 }
 
 void Tauler::inicialitza(const string &nomFitxer)
@@ -170,10 +201,23 @@ Fitxa *Tauler::getFitxa(Posicio p)
 {
     if (p.getY() < N_FILES && p.getX() < N_COLUMNES && p.getY() >= 0 && p.getX() >= 0)
     {
-        return &m_tauler[p.getY()][p.getX()];
+        return m_tauler[p.getY()][p.getX()];
     }
     else
     {
         return nullptr;
+    }
+}
+
+void Tauler::visualitza() const
+{
+    GraphicManager::getInstance()->drawSprite(GRAFIC_FONS, 0, 0);
+    GraphicManager::getInstance()->drawSprite(GRAFIC_TAULER, POS_X_TAULER, POS_Y_TAULER);
+    for (int i = 0; i < N_FILES; i++)
+    {
+        for (int j = 0; j < N_COLUMNES; j++)
+        {
+            m_tauler[i][j]->visualitza(j,i);
+        }
     }
 }
